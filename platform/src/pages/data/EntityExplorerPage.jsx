@@ -291,7 +291,8 @@ export function EntityExplorerPage() {
   const [actionMsg, setActionMsg] = useState("");
   const [actionBusy, setActionBusy] = useState(false);
 
-  const queryFilters = useMemo(() => buildImportedRecordsQuery(filters), [filters]);
+  const recordType = filters.recordType || "campaign";
+  const queryFilters = useMemo(() => buildImportedRecordsQuery(filters, { recordType }), [filters, recordType]);
 
   const { rows, loading, error, reload, page, setPage, pageSize, pagination } = usePagedQuery(
     "/ops/imported-records",
@@ -299,7 +300,7 @@ export function EntityExplorerPage() {
     { pageSize: 25 },
   );
 
-  const summaryApi = useApi("/ops/imported-records/summary");
+  const summaryApi = useApi("/ops/imported-records/summary", { recordType });
   const summary = summaryApi.data?.data ?? null;
 
   const openDetail = useCallback(async (row) => {

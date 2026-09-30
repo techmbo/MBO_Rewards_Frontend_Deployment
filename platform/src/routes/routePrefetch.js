@@ -17,8 +17,8 @@ const ROUTE_DATA_PREFETCH = {
   "/ops/admin/orders": () => fetchApi("/ops/admin/orders", { page: 1, pageSize: 25 }),
   "/data/entities": () =>
     Promise.allSettled([
-      fetchApi("/ops/imported-records", { page: 1, pageSize: 25 }),
-      fetchApi("/ops/imported-records/summary"),
+      fetchApi("/ops/imported-records", { recordType: "campaign", page: 1, pageSize: 25 }),
+      fetchApi("/ops/imported-records/summary", { recordType: "campaign" }),
     ]),
   "/integrations": () => fetchApi("/marketplace/accounts"),
   "/master/campaigns": () => fetchApi("/supplier-campaigns", { page: 1, pageSize: 25 }),
