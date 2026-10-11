@@ -16,15 +16,14 @@ const OUTCOME_OPTIONS = [
   { value: "VERIFY_LIVE", label: "Verify live" },
 ];
 
-const SOURCE_OBJECT_OPTIONS = [
-  { value: "", label: "All objects" },
-  { value: "campaigns", label: "Campaigns" },
-  { value: "coupons", label: "Coupons" },
-  { value: "voucher_codes", label: "Voucher Codes" },
-  { value: "conversions", label: "Conversions" },
-  { value: "products", label: "Products" },
-  { value: "reporting", label: "Reporting" },
-  { value: "payments", label: "Payments" },
+// GET /fields authorizes on `entity_type` and rejects a request without one, so the page always
+// sends a record type. Values are the entity types the backend grants read access by.
+const ENTITY_TYPE_OPTIONS = [
+  { value: "campaign", label: "Campaigns" },
+  { value: "coupon", label: "Coupons" },
+  { value: "conversion", label: "Conversions" },
+  { value: "performance", label: "Reporting" },
+  { value: "payment", label: "Payments" },
 ];
 
 function formatRate(rate) {
@@ -36,7 +35,7 @@ function formatRate(rate) {
  * Source Schema Registry — observed field/path/type layer from immutable raw payloads.
  */
 export function SourceSchemaPage() {
-  const [filters, setFilters] = useState({ network: "", source_object: "", mapping_status: "" });
+  const [filters, setFilters] = useState({ network: "", entity_type: "campaign", mapping_status: "" });
   const queryFilters = useMemo(
     () => Object.fromEntries(Object.entries(filters).filter(([, v]) => v)),
     [filters],
@@ -130,10 +129,10 @@ export function SourceSchemaPage() {
           options={NETWORK_SOURCE_OPTIONS}
         />
         <Select
-          label="Source Object"
-          value={filters.source_object}
-          onChange={(e) => setFilters((p) => ({ ...p, source_object: e.target.value }))}
-          options={SOURCE_OBJECT_OPTIONS}
+          label="Record Type"
+          value={filters.entity_type}
+          onChange={(e) => setFilters((p) => ({ ...p, entity_type: e.target.value }))}
+          options={ENTITY_TYPE_OPTIONS}
         />
         <Select
           label="Outcome"

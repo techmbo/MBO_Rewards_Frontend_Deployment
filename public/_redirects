@@ -1,0 +1,12 @@
+# Cloudflare Workers static assets — SPA fallback for the Integrated Platform.
+# https://developers.cloudflare.com/workers/static-assets/redirects/
+#
+# On Cloudflare/OpenNext the Next.js afterFiles rewrite to /mbointegratedPlatform/index.html
+# is not applied to public/ files, so deep links (hard refresh, direct portal URLs) must be
+# resolved at the asset layer. Rules are evaluated top-down and BEFORE asset lookup, so real
+# files are mapped to themselves first and only unmatched paths fall back to the SPA shell.
+# The fallback targets the directory form (html_handling would loop on /index.html).
+/mbointegratedPlatform/mbo-logo.svg /mbointegratedPlatform/mbo-logo.svg 200
+/mbointegratedPlatform/vite.svg /mbointegratedPlatform/vite.svg 200
+/mbointegratedPlatform/assets/* /mbointegratedPlatform/assets/:splat 200
+/mbointegratedPlatform/* /mbointegratedPlatform/ 200
