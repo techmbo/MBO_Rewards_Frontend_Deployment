@@ -52,7 +52,11 @@ export function UsersPage() {
     setMessage("");
     setError("");
     try {
-      await postApi("/users", createForm);
+      const body = { ...createForm, email: createForm.email.trim() };
+      // createUserSchema: name is optional but must be non-empty when present.
+      if (body.name.trim()) body.name = body.name.trim();
+      else delete body.name;
+      await postApi("/users", body);
       setMessage("User created successfully.");
       setCreateForm({ email: "", password: "", name: "", role: "SUPPORT" });
       await loadData();

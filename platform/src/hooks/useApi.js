@@ -7,8 +7,13 @@ import {
   isCacheFresh,
   readCacheEntry,
 } from "../apiCache";
+import { GENERIC_REQUEST_ERROR, safeListError, statusSafeMessage } from "../utils/safeErrorText";
 
-export function useApi(path, params = {}, { enabled = true, cacheTtlMs = DEFAULT_CACHE_TTL_MS } = {}) {
+export function useApi(
+  path,
+  params = {},
+  { enabled = true, cacheTtlMs = DEFAULT_CACHE_TTL_MS, safeErrorMessage = null } = {},
+) {
   const paramsKey = JSON.stringify(params);
   const stableParams = useMemo(() => params, [paramsKey]);
   const cacheKey = path ? buildCacheKey(path, stableParams) : null;
@@ -46,13 +51,20 @@ export function useApi(path, params = {}, { enabled = true, cacheTtlMs = DEFAULT
         setData(result);
         return result;
       } catch (err) {
-        setError(err.message);
+        // `safeErrorMessage` opts a page into a deterministic, page-owned message derived from
+        // the HTTP status alone; the response body is never read. Callers that do not opt in keep
+        // the previous behaviour, so legacy pages are unaffected.
+        setError(
+          safeErrorMessage
+            ? statusSafeMessage(err.status, safeErrorMessage)
+            : safeListError(err.message, GENERIC_REQUEST_ERROR),
+        );
         throw err;
       } finally {
         setLoading(false);
       }
     },
-    [path, paramsKey, enabled, cacheTtlMs, stableParams],
+    [path, paramsKey, enabled, cacheTtlMs, stableParams, safeErrorMessage],
   );
 
   const refresh = useCallback(

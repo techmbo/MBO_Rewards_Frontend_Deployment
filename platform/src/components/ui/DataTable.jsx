@@ -6,6 +6,7 @@ import { LoadingState } from "./LoadingState";
 import { Pagination } from "./Pagination";
 import { SearchInput } from "./FormControls";
 import { Icon } from "./Icon";
+import { optionalStringOrNumber } from "../../utils/propValidators";
 
 function columnStyle(col) {
   const style = {};
@@ -30,7 +31,7 @@ export function DataTable({
   page,
   totalPages,
   total,
-  pageSize,
+  pageSize = null,
   onPageChange,
   searchable,
   searchPlaceholder,
@@ -289,3 +290,7 @@ export function DataTable({
     </div>
   );
 }
+
+// Only the prop introduced here is declared: this file's remaining props are untouched by
+// this change, and validating them would be a separate refactor.
+DataTable.propTypes = { pageSize: optionalStringOrNumber };

@@ -27,9 +27,26 @@ function writeStoredToken(token) {
   }
 }
 
+/**
+ * TEMPORARY Preview auth bypass — REMOVE WHEN THE LOGIN FLOW IS USABLE AGAIN.
+ *
+ * The frontend deliberately holds no bypass flag of its own. It asks the backend, which answers
+ * `active: false` in production regardless of how anything was built or configured, so a
+ * production build can never skip login even by mistake.
+ */
+async function readDevBypassStatus() {
+  try {
+    const response = await fetchApi("/auth/dev-bypass-status");
+    return response?.active === true;
+  } catch {
+    return false;
+  }
+}
+
 export function AuthProvider({ children }) {
   const [token, setToken] = useState(() => readStoredToken());
   const [user, setUser] = useState(null);
+  const [devBypass, setDevBypass] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const clearSession = useCallback(() => {
@@ -56,12 +73,28 @@ export function AuthProvider({ children }) {
 
     async function bootstrap() {
       if (!token) {
-        if (active) {
-          setUser(null);
-          setLoading(false);
+        // No stored token. Ask the backend whether the Preview bypass is live; if it is, the
+        // unauthenticated /auth/me call returns a synthetic ADMIN and we route straight in.
+        const bypassActive = await readDevBypassStatus();
+        if (!active) return;
+        if (bypassActive) {
+          try {
+            const response = await fetchApi("/auth/me");
+            if (!active) return;
+            setUser(response.user);
+            setDevBypass(true);
+            setLoading(false);
+            return;
+          } catch {
+            if (!active) return;
+          }
         }
+        setUser(null);
+        setDevBypass(false);
+        setLoading(false);
         return;
       }
+      setDevBypass(false);
 
       try {
         const response = await fetchApi("/auth/me");
@@ -130,13 +163,16 @@ export function AuthProvider({ children }) {
       user,
       token,
       loading,
-      isAuthenticated: Boolean(user && token),
+      devBypass,
+      // Under the Preview bypass there is no token by design, so authentication is carried by the
+      // synthetic user the backend returned. Everywhere else a token is still required.
+      isAuthenticated: Boolean(user && (token || devBypass)),
       login,
       register,
       logout,
       refreshUser,
     }),
-    [user, token, loading, login, register, logout, refreshUser],
+    [user, token, loading, devBypass, login, register, logout, refreshUser],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

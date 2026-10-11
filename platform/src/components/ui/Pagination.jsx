@@ -1,6 +1,11 @@
 import { Icon } from "./Icon";
 
-export function Pagination({ page, totalPages, total, onPageChange, pageSize = 20 }) {
+/**
+ * `pageSize` must be the size the request actually used (or the one the response reported).
+ * It has no default: a hardcoded fallback previously rendered "20 per page" on every table
+ * regardless of the real request, so when the size is unknown the clause is omitted instead.
+ */
+export function Pagination({ page, totalPages, total, onPageChange, pageSize = null }) {
   const safeTotalPages = Math.max(totalPages || 1, 1);
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-4">
@@ -29,7 +34,8 @@ export function Pagination({ page, totalPages, total, onPageChange, pageSize = 2
       </div>
       {total != null && (
         <span className="text-sm text-slate-500">
-          {Number(total).toLocaleString()} records · {pageSize} per page
+          {Number(total).toLocaleString()} records
+          {pageSize ? ` · ${pageSize} per page` : ""}
         </span>
       )}
     </div>

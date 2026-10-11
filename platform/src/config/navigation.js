@@ -52,35 +52,46 @@ export const NAV_SECTIONS = [
     id: "network-ops",
     label: "Network Operations",
     items: [
-      { path: "/", label: "Dashboard", permissions: [], staffOnly: true, icon: "overview" },
-      { path: "/suppliers", label: "Network Sources", permissions: [PERMISSIONS.CAMPAIGNS_READ], icon: "networks" },
+      { path: "/", label: "Dashboard", permissions: [], staffOnly: true, icon: "overview", exact: true },
       {
-        path: "/ops/network/all-data",
+        path: "/network/accounts",
+        label: "Network Accounts",
+        permissions: [PERMISSIONS.CAMPAIGNS_READ],
+        icon: "networks",
+      },
+      {
+        path: "/network/data",
         label: "All Network Data",
         permissions: [PERMISSIONS.CAMPAIGNS_READ],
         icon: "data",
       },
       {
-        path: "/data/entities",
+        path: "/network/campaigns",
         label: "Campaigns",
-        permissions: [PERMISSIONS.CAMPAIGNS_READ],
+        permissions: [PERMISSIONS.CATALOG_READ],
         icon: "campaigns",
       },
       {
-        path: "/ops/network/supplier-commission-rules",
+        path: "/network/commission-rules",
         label: "Supplier Commission Rules",
         permissions: [PERMISSIONS.COMMISSION_READ],
         icon: "finance",
       },
       {
-        path: "/ops/network/coupon-pool",
-        label: "Coupon / Voucher",
-        permissions: [PERMISSIONS.COUPONS_READ, PERMISSIONS.COUPONS_WRITE],
+        path: "/network/coupons",
+        label: "Coupons / Vouchers",
+        permissions: [PERMISSIONS.COUPONS_READ],
         icon: "coupons",
       },
       {
-        path: "/ops/network/tracking-links",
+        path: "/network/tracking-links",
         label: "Tracking Links",
+        permissions: [PERMISSIONS.TRACKING_READ],
+        icon: "links",
+      },
+      {
+        path: "/network/supplier-tracking-links",
+        label: "Supplier Tracking Links",
         permissions: [PERMISSIONS.TRACKING_READ],
         icon: "links",
       },
@@ -91,19 +102,19 @@ export const NAV_SECTIONS = [
         icon: "coupons",
       },
       {
-        path: "/ops/admin/performance",
-        label: "Raw Network Performance",
+        path: "/network/performance",
+        label: "Performance Reports",
         permissions: [PERMISSIONS.PERFORMANCE_READ],
         icon: "performance",
       },
       {
-        path: "/ops/admin/orders",
+        path: "/network/orders",
         label: "Orders / Conversions",
         permissions: [PERMISSIONS.CONVERSIONS_READ],
         icon: "orders",
       },
       {
-        path: "/ops/products",
+        path: "/network/products",
         label: "Products / Feeds",
         permissions: [PERMISSIONS.PRODUCTS_READ],
         icon: "products",
@@ -187,8 +198,14 @@ export const NAV_SECTIONS = [
         icon: "description",
       },
       {
-        path: "/integrations",
+        path: "/integrity/api-credentials",
         label: "API Credentials",
+        permissions: [PERMISSIONS.INTEGRATIONS_READ],
+        icon: "integrations",
+      },
+      {
+        path: "/integrations",
+        label: "Network Integrations",
         permissions: [PERMISSIONS.INTEGRATIONS_READ],
         icon: "integrations",
       },
@@ -393,6 +410,12 @@ export function getVisibleNav(user) {
       return item.permissions.some((p) => user?.permissions?.includes(p));
     }),
   })).filter((section) => section.items.length > 0);
+}
+
+export function isNavItemActive(item, pathname) {
+  if (item.path === pathname) return true;
+  if (item.exact || item.path === "/") return false;
+  return pathname.startsWith(`${item.path}/`);
 }
 
 export function findNavItem(pathname) {

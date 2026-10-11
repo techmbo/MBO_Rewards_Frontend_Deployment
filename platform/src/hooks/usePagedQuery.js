@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { fetchApi } from "../api";
+import { GENERIC_REQUEST_ERROR, safeListError, statusSafeMessage } from "../utils/safeErrorText";
 import {
   buildCacheKey,
   DEFAULT_CACHE_TTL_MS,
@@ -101,7 +102,7 @@ function readCachedResult(path, page, pageSize, filters) {
 
 const EMPTY_RESULT = { data: [], pagination: {}, extras: {} };
 
-export function usePagedQuery(path, filters = {}, { pageSize = 25, enabled = true, cacheTtlMs = DEFAULT_CACHE_TTL_MS } = {}) {
+export function usePagedQuery(path, filters = {}, { pageSize = 25, enabled = true, cacheTtlMs = DEFAULT_CACHE_TTL_MS, safeErrorMessage = null } = {}) {
   const filtersKey = JSON.stringify(filters);
   const stableFilters = useMemo(() => filters, [filtersKey]);
 
@@ -159,13 +160,20 @@ export function usePagedQuery(path, filters = {}, { pageSize = 25, enabled = tru
         setResult(normalized);
         return normalized;
       } catch (err) {
-        setError(err.message);
+        // `safeErrorMessage` opts a page into a deterministic, page-owned message derived from
+        // the HTTP status alone; the response body is never read. Callers that do not opt in keep
+        // the previous behaviour, so legacy pages are unaffected.
+        setError(
+          safeErrorMessage
+            ? statusSafeMessage(err.status, safeErrorMessage)
+            : safeListError(err.message, GENERIC_REQUEST_ERROR),
+        );
         throw err;
       } finally {
         setLoading(false);
       }
     },
-    [path, page, pageSize, filtersKey, enabled, cacheTtlMs, stableFilters],
+    [path, page, pageSize, filtersKey, enabled, cacheTtlMs, stableFilters, safeErrorMessage],
   );
 
   const refresh = useCallback(

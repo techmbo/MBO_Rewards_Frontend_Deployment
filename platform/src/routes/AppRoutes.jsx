@@ -77,6 +77,19 @@ import { SupplierCommissionRulesPage } from "../pages/ops/SupplierCommissionRule
 import { NetworkTrackingLinksPage } from "../pages/ops/NetworkTrackingLinksPage.jsx";
 import { FullRawPayloadPage } from "../pages/ops/FullRawPayloadPage.jsx";
 import { SyncRunHistoryPage } from "../pages/ops/SyncRunHistoryPage.jsx";
+import { NetworkAccountsPage } from "../pages/network/NetworkAccountsPage.jsx";
+import { NetworkAccountDetailPage } from "../pages/network/NetworkAccountDetailPage.jsx";
+import { ApiCredentialsPage } from "../pages/integrity/ApiCredentialsPage.jsx";
+import { CampaignsPage as NetworkCampaignsPage } from "../pages/network/campaigns/CampaignsPage.jsx";
+import { CampaignDetailPage as NetworkCampaignDetailPage } from "../pages/network/campaigns/CampaignDetailPage.jsx";
+import { CommissionRulesPage as NetworkCommissionRulesPage } from "../pages/network/commissionRules/CommissionRulesPage.jsx";
+import { NetworkCouponsPage } from "../pages/network/couponsVouchers/NetworkCouponsPage.jsx";
+import { NetworkProductsFeedsPage } from "../pages/network/productsFeeds/NetworkProductsFeedsPage.jsx";
+import { NetworkPerformanceReportsPage } from "../pages/network/performance/NetworkPerformanceReportsPage.jsx";
+import { NetworkOrdersPage } from "../pages/network/orders/NetworkOrdersPage.jsx";
+import { AllNetworkDataPage as NetworkAllDataPage } from "../pages/network/allNetworkData/AllNetworkDataPage.jsx";
+import { NetworkTrackingLinksPage as NetworkTrackingLinksRegistryPage } from "../pages/network/trackingLinks/NetworkTrackingLinksPage.jsx";
+import { SupplierTrackingLinksPage } from "../pages/network/supplierTrackingLinks/SupplierTrackingLinksPage.jsx";
 
 function Protected({ permissions = [], element }) {
   return <ProtectedRoute permissions={permissions}>{element}</ProtectedRoute>;
@@ -131,6 +144,50 @@ export function AppRoutes() {
           element={<Protected permissions={[PERMISSIONS.CAMPAIGNS_READ]} element={<MasterCatalogGuidePage />} />}
         />
         <Route path="suppliers" element={<Protected permissions={[PERMISSIONS.CAMPAIGNS_READ]} element={<SuppliersPage />} />} />
+        {/* Network Operations. Gates mirror the backend route guards:
+            GET /suppliers + /suppliers/:key = campaigns:read, GET /marketplace/accounts = integrations:read. */}
+        <Route path="network/accounts" element={<Protected permissions={[PERMISSIONS.CAMPAIGNS_READ]} element={<NetworkAccountsPage />} />} />
+        <Route path="network/accounts/:key" element={<Protected permissions={[PERMISSIONS.CAMPAIGNS_READ]} element={<NetworkAccountDetailPage />} />} />
+        <Route path="integrity/api-credentials" element={<Protected permissions={[PERMISSIONS.INTEGRATIONS_READ]} element={<ApiCredentialsPage />} />} />
+        {/* GET /ops/admin/campaigns and /ops/admin/campaigns/:id = catalog:read. */}
+        <Route path="network/campaigns" element={<Protected permissions={[PERMISSIONS.CATALOG_READ]} element={<NetworkCampaignsPage />} />} />
+        <Route path="network/campaigns/:id" element={<Protected permissions={[PERMISSIONS.CATALOG_READ]} element={<NetworkCampaignDetailPage />} />} />
+        {/* GET /ops/admin/supplier-commission-rules = commission:read. */}
+        <Route path="network/commission-rules" element={<Protected permissions={[PERMISSIONS.COMMISSION_READ]} element={<NetworkCommissionRulesPage />} />} />
+        {/* GET /supplier-coupons = coupons:read. */}
+        <Route path="network/coupons" element={<Protected permissions={[PERMISSIONS.COUPONS_READ]} element={<NetworkCouponsPage />} />} />
+        {/* GET /ops/admin/tracking-links = tracking:read. */}
+        <Route path="network/tracking-links" element={<Protected permissions={[PERMISSIONS.TRACKING_READ]} element={<NetworkTrackingLinksRegistryPage />} />} />
+        <Route path="network/supplier-tracking-links" element={<Protected permissions={[PERMISSIONS.TRACKING_READ]} element={<SupplierTrackingLinksPage />} />} />
+        {/* GET /ops/admin/product-feeds = products:read. GET /ops/products writes during a GET and is never called. */}
+        <Route path="network/products" element={<Protected permissions={[PERMISSIONS.PRODUCTS_READ]} element={<NetworkProductsFeedsPage />} />} />
+        {/* GET /ops/admin/performance?grain=network = performance:read. */}
+        <Route path="network/performance" element={<Protected permissions={[PERMISSIONS.PERFORMANCE_READ]} element={<NetworkPerformanceReportsPage />} />} />
+        {/* GET /ops/admin/orders = conversions:read. */}
+        <Route path="network/orders" element={<Protected permissions={[PERMISSIONS.CONVERSIONS_READ]} element={<NetworkOrdersPage />} />} />
+        {/* GET /ops/imported-records only. campaigns:read is the route baseline (campaign is the default
+            record type); the backend enforces the per-type permission on every request. */}
+        <Route path="network/data" element={<Protected permissions={[PERMISSIONS.CAMPAIGNS_READ]} element={<NetworkAllDataPage />} />} />
+        {/* Network Operations paths that resolve to the existing built pages. */}
+        <Route path="network" element={<Navigate to="/" replace />} />
+        <Route path="network/offers" element={<Navigate to="/ops/network/offers" replace />} />
+        <Route path="finance/payment-status" element={<Navigate to="/ops/admin/payment-status" replace />} />
+        <Route path="finance/invoices" element={<Navigate to="/ops/admin/network-billing" replace />} />
+        <Route path="finance/payments" element={<Navigate to="/ops/admin/network-payments-received" replace />} />
+        <Route path="finance/receipts" element={<Navigate to="/ops/admin/mbo-receipts" replace />} />
+        <Route path="finance/reconciliation" element={<Navigate to="/ops/reconciliation" replace />} />
+        <Route path="integrity/exceptions" element={<Navigate to="/ops/exceptions" replace />} />
+        <Route path="integrity/raw-payloads" element={<Navigate to="/ops/network/raw-payload" replace />} />
+        <Route path="integrity/sync-runs" element={<Navigate to="/ops/sync-runs" replace />} />
+        <Route path="integrity/source-schema" element={<Navigate to="/ops/network/source-schema" replace />} />
+        <Route path="integrity/mapping-rules" element={<Navigate to="/ops/network/mapping-rules" replace />} />
+        <Route path="integrity/naming-standard" element={<Navigate to="/ops/network/naming-standard" replace />} />
+        <Route path="integrity/tech-guide" element={<Navigate to="/ops/network/guide" replace />} />
+        <Route path="catalog/brands" element={<Navigate to="/master/brands" replace />} />
+        <Route path="catalog/campaigns" element={<Navigate to="/master/campaigns" replace />} />
+        <Route path="catalog/assign" element={<Navigate to="/master/assign" replace />} />
+        <Route path="catalog/assignment-review" element={<Navigate to="/master/review" replace />} />
+        <Route path="catalog/new-code-alerts" element={<Navigate to="/master/code-alerts" replace />} />
         <Route path="data/entities" element={<Protected permissions={[PERMISSIONS.CAMPAIGNS_READ]} element={<EntityExplorerPage />} />} />
         <Route path="clients" element={<Protected permissions={[PERMISSIONS.CLIENTS_READ]} element={<ClientsPage />} />} />
         <Route

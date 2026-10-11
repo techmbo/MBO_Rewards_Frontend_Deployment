@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { fetchApi, patchApi, postApi } from "../../api";
+import { agreementLineageFields, hasAgreementLineage } from "../../utils/commissionDisplay";
 import { canViewCommission, hasPermission, PERMISSIONS } from "../../auth/permissions";
 import { useAuth } from "../../context/AuthContext";
 import { StatusBadge, formatDateShort } from "../../pages/helpers";
@@ -30,6 +31,9 @@ export function CouponCommissionPanel({ couponId }) {
     currency: "USD",
     effectiveFrom: new Date().toISOString().slice(0, 10),
     activate: true,
+    agreementRef: "",
+    agreementApprovedAt: "",
+    agreementApprovedBy: "",
   });
   const [saving, setSaving] = useState(false);
 
@@ -70,6 +74,11 @@ export function CouponCommissionPanel({ couponId }) {
   async function handleCreate(event) {
     event.preventDefault();
     if (!canManage) return;
+    const agreement = agreementLineageFields(form);
+    if (form.activate && !hasAgreementLineage(agreement)) {
+      setError("Activation requires the agreement reference, approval date and approver.");
+      return;
+    }
     setSaving(true);
     setError("");
     try {
@@ -81,6 +90,7 @@ export function CouponCommissionPanel({ couponId }) {
         currency: form.currency || null,
         effectiveFrom: form.effectiveFrom,
         activate: form.activate,
+        ...agreement,
       });
       await load();
     } catch (err) {
@@ -271,13 +281,41 @@ export function CouponCommissionPanel({ couponId }) {
                   onChange={(e) => setForm((p) => ({ ...p, effectiveFrom: e.target.value }))}
                 />
               </label>
+              <label className="grid gap-1 text-sm">
+                <span>Agreement / IO / SOW reference{form.activate ? " *" : ""}</span>
+                <input
+                  className="rounded-lg border border-slate-300 px-3 py-2"
+                  required={form.activate}
+                  value={form.agreementRef}
+                  onChange={(e) => setForm((p) => ({ ...p, agreementRef: e.target.value }))}
+                />
+              </label>
+              <label className="grid gap-1 text-sm">
+                <span>Agreement approved on{form.activate ? " *" : ""}</span>
+                <input
+                  className="rounded-lg border border-slate-300 px-3 py-2"
+                  type="date"
+                  required={form.activate}
+                  value={form.agreementApprovedAt}
+                  onChange={(e) => setForm((p) => ({ ...p, agreementApprovedAt: e.target.value }))}
+                />
+              </label>
+              <label className="grid gap-1 text-sm sm:col-span-2">
+                <span>Agreement approved by{form.activate ? " *" : ""}</span>
+                <input
+                  className="rounded-lg border border-slate-300 px-3 py-2"
+                  required={form.activate}
+                  value={form.agreementApprovedBy}
+                  onChange={(e) => setForm((p) => ({ ...p, agreementApprovedBy: e.target.value }))}
+                />
+              </label>
               <label className="flex items-center gap-2 text-sm sm:col-span-2">
                 <input
                   type="checkbox"
                   checked={form.activate}
                   onChange={(e) => setForm((p) => ({ ...p, activate: e.target.checked }))}
                 />
-                Activate immediately (EFFECTIVE)
+                Activate immediately (EFFECTIVE) — requires the agreement lineage above
               </label>
               <div className="sm:col-span-2">
                 <button

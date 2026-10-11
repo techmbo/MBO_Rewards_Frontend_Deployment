@@ -1,7 +1,7 @@
 import { Link, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { PLATFORM_NAME } from "../../config/brand";
-import { getVisibleNav } from "../../config/navigation";
+import { getVisibleNav, isNavItemActive } from "../../config/navigation";
 import { useAuth } from "../../context/AuthContext";
 import { fetchApi } from "../../api";
 import { hasPermission, PERMISSIONS } from "../../auth/permissions";
@@ -100,8 +100,7 @@ export function Sidebar({ mobileOpen, onClose, collapsed = false, onToggleCollap
               )}
               <ul className="space-y-0.5">
                 {section.items.map((item) => {
-                  const active =
-                    pathname === item.path || (item.path !== "/" && pathname.startsWith(item.path));
+                  const active = isNavItemActive(item, pathname);
                   const badge =
                     item.badgeKey && navCounts?.[item.badgeKey] != null
                       ? Number(navCounts[item.badgeKey])
