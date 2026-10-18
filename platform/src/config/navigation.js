@@ -275,38 +275,12 @@ export const NAV_SECTIONS = [
     label: "Client Operations",
     items: [
       { path: "/clients", label: "Clients", permissions: [PERMISSIONS.CLIENTS_READ], icon: "clients", badgeKey: "clients" },
-      {
-        path: "/clients/setup",
-        label: "Client Setup",
-        permissions: [PERMISSIONS.CLIENTS_READ],
-        icon: "clients",
-      },
-      {
-        path: "/assignments",
-        label: "Client Campaigns",
-        permissions: [PERMISSIONS.CLIENTS_READ],
-        icon: "assignments",
-        badgeKey: "clientCampaigns",
-      },
-      {
-        path: "/activation-review",
-        label: "Activation Review",
-        permissions: [PERMISSIONS.CLIENTS_READ],
-        icon: "clients",
-        badgeKey: "activationReview",
-      },
-    ],
-  },
-  {
-    id: "client-ops-reading",
-    label: "Reading & Implementation",
-    items: [
-      {
-        path: "/clients/guide",
-        label: "Guide / Tech Notes",
-        permissions: [PERMISSIONS.CLIENTS_READ],
-        icon: "description",
-      },
+      { path: "/assignments", label: "Assignments", permissions: [PERMISSIONS.CLIENTS_READ], icon: "assignments" },
+      { path: "/tracking-links", label: "Client Tracking Links", permissions: [PERMISSIONS.TRACKING_READ], icon: "links" },
+      { path: "/reports/clients", label: "Client Reports", permissions: [PERMISSIONS.PERFORMANCE_READ], icon: "reports" },
+      { path: "/reports/campaigns", label: "Campaign Reports", permissions: [PERMISSIONS.PERFORMANCE_READ], icon: "reports" },
+      { path: "/clicks", label: "Clicks", permissions: [PERMISSIONS.TRACKING_READ], icon: "performance" },
+      { path: "/conversions", label: "Conversions", permissions: [PERMISSIONS.CONVERSIONS_READ], icon: "orders" },
     ],
   },
   {
@@ -348,12 +322,6 @@ export const NAV_SECTIONS = [
         label: "Client Confirmed Orders",
         permissions: [PERMISSIONS.CONVERSIONS_READ],
         icon: "orders",
-      },
-      {
-        path: "/tracking-links",
-        label: "Client Tracking Links",
-        permissions: [PERMISSIONS.TRACKING_READ],
-        icon: "links",
       },
     ],
   },

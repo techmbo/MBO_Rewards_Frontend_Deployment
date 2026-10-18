@@ -1,4 +1,4 @@
-import { Navigate, Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes, useParams, useSearchParams } from "react-router-dom";
 import { PERMISSIONS } from "../auth/permissions";
 import { AppShell } from "../components/layout/AppShell";
 import { ProtectedRoute } from "../components/ProtectedRoute";
@@ -20,16 +20,11 @@ import { AssignCampaignsPage } from "../pages/master/AssignCampaignsPage.jsx";
 import { AssignmentReviewPage } from "../pages/master/AssignmentReviewPage.jsx";
 import { NewCodeAlertsPage } from "../pages/master/NewCodeAlertsPage.jsx";
 import { MasterCatalogGuidePage } from "../pages/master/MasterCatalogGuidePage.jsx";
-import { ClientSetupPage } from "../pages/clients/ClientSetupPage.jsx";
-import { ClientAgreementPage } from "../pages/clients/ClientAgreementPage.jsx";
-import { ClientApiPage } from "../pages/clients/ClientApiPage.jsx";
-import { ClientPortalPage } from "../pages/clients/ClientPortalPage.jsx";
-import { ClientCatalogPage } from "../pages/clients/ClientCatalogPage.jsx";
-import { ClientActivationPage } from "../pages/clients/ClientActivationPage.jsx";
-import { ActivationReviewPage } from "../pages/clients/ActivationReviewPage.jsx";
-import { ClientOpsGuidePage } from "../pages/clients/ClientOpsGuidePage.jsx";
-import { ClientCampaignsPage } from "../pages/clients/ClientCampaignsPage.jsx";
 import { AssignmentsPage } from "../pages/clients/AssignmentsPage.jsx";
+import { ClientReportsPage } from "../pages/reporting/ClientReportsPage.jsx";
+import { CampaignReportsPage } from "../pages/reporting/CampaignReportsPage.jsx";
+import { ClicksPage } from "../pages/reporting/ClicksPage.jsx";
+import { ConversionsPage } from "../pages/reporting/ConversionsPage.jsx";
 import { PortalOverviewPage } from "../pages/portal/PortalOverviewPage.jsx";
 import { PortalCampaignsPage } from "../pages/portal/PortalCampaignsPage.jsx";
 import { PortalPerformancePage } from "../pages/portal/PortalPerformancePage.jsx";
@@ -90,6 +85,24 @@ import { NetworkOrdersPage } from "../pages/network/orders/NetworkOrdersPage.jsx
 import { AllNetworkDataPage as NetworkAllDataPage } from "../pages/network/allNetworkData/AllNetworkDataPage.jsx";
 import { NetworkTrackingLinksPage as NetworkTrackingLinksRegistryPage } from "../pages/network/trackingLinks/NetworkTrackingLinksPage.jsx";
 import { SupplierTrackingLinksPage } from "../pages/network/supplierTrackingLinks/SupplierTrackingLinksPage.jsx";
+
+/** Old per-client module sections → the wizard step that now owns that information. */
+const CLIENT_SECTION_STEPS = { setup: 1, agreement: 1, catalog: 3, api: 5, portal: 5, activation: 5 };
+
+function wizardPath(clientId, step) {
+  return `/clients?client=${encodeURIComponent(clientId)}&step=${step}`;
+}
+
+function ClientDeepLinkRedirect() {
+  const { clientId, section } = useParams();
+  return <Navigate to={wizardPath(clientId, CLIENT_SECTION_STEPS[section] || 1)} replace />;
+}
+
+function ActivationReviewRedirect() {
+  const [searchParams] = useSearchParams();
+  const clientId = searchParams.get("clientId");
+  return <Navigate to={clientId ? wizardPath(clientId, 5) : "/clients"} replace />;
+}
 
 function Protected({ permissions = [], element }) {
   return <ProtectedRoute permissions={permissions}>{element}</ProtectedRoute>;
@@ -190,45 +203,15 @@ export function AppRoutes() {
         <Route path="catalog/new-code-alerts" element={<Navigate to="/master/code-alerts" replace />} />
         <Route path="data/entities" element={<Protected permissions={[PERMISSIONS.CAMPAIGNS_READ]} element={<EntityExplorerPage />} />} />
         <Route path="clients" element={<Protected permissions={[PERMISSIONS.CLIENTS_READ]} element={<ClientsPage />} />} />
-        <Route
-          path="clients/setup"
-          element={<Protected permissions={[PERMISSIONS.CLIENTS_READ]} element={<ClientSetupPage />} />}
-        />
-        <Route
-          path="clients/:clientId/setup"
-          element={<Protected permissions={[PERMISSIONS.CLIENTS_READ]} element={<ClientSetupPage />} />}
-        />
-        <Route
-          path="clients/:clientId/agreement"
-          element={<Protected permissions={[PERMISSIONS.CLIENTS_READ]} element={<ClientAgreementPage />} />}
-        />
-        <Route
-          path="clients/:clientId/api"
-          element={<Protected permissions={[PERMISSIONS.CLIENTS_READ]} element={<ClientApiPage />} />}
-        />
-        <Route
-          path="clients/:clientId/portal"
-          element={<Protected permissions={[PERMISSIONS.CLIENTS_READ]} element={<ClientPortalPage />} />}
-        />
-        <Route
-          path="clients/:clientId/catalog"
-          element={<Protected permissions={[PERMISSIONS.CLIENTS_READ]} element={<ClientCatalogPage />} />}
-        />
-        <Route
-          path="clients/:clientId/activation"
-          element={<Protected permissions={[PERMISSIONS.CLIENTS_READ]} element={<ClientActivationPage />} />}
-        />
-        <Route path="clients/:clientId" element={<Navigate to="setup" replace />} />
-        <Route path="assignments" element={<Protected permissions={[PERMISSIONS.CLIENTS_READ]} element={<ClientCampaignsPage />} />} />
-        <Route
-          path="activation-review"
-          element={<Protected permissions={[PERMISSIONS.CLIENTS_READ]} element={<ActivationReviewPage />} />}
-        />
-        <Route
-          path="clients/guide"
-          element={<Protected permissions={[PERMISSIONS.CLIENTS_READ]} element={<ClientOpsGuidePage />} />}
-        />
-        <Route path="assignments/ledger" element={<Protected permissions={[PERMISSIONS.CLIENTS_READ]} element={<AssignmentsPage />} />} />
+        {/* The per-client module pages were replaced by the 5-step wizard on /clients. Old URLs
+            keep working: each one opens the wizard for that client at the matching step. */}
+        <Route path="clients/setup" element={<Navigate to="/clients?create=1" replace />} />
+        <Route path="clients/guide" element={<Navigate to="/clients" replace />} />
+        <Route path="clients/:clientId/:section?" element={<ClientDeepLinkRedirect />} />
+        <Route path="assignments" element={<Protected permissions={[PERMISSIONS.CLIENTS_READ]} element={<AssignmentsPage />} />} />
+        {/* Client Campaigns and Activation Review were folded into the wizard (steps 3 and 5). */}
+        <Route path="activation-review" element={<ActivationReviewRedirect />} />
+        <Route path="assignments/ledger" element={<Navigate to="/assignments" replace />} />
         <Route path="portal" element={<Protected permissions={portalPerm} element={<PortalOverviewPage />} />} />
         <Route path="portal/campaigns" element={<Protected permissions={portalPerm} element={<PortalCampaignsPage />} />} />
         <Route
@@ -268,6 +251,10 @@ export function AppRoutes() {
           element={<Protected permissions={[PERMISSIONS.PORTAL_SETTINGS_READ, PERMISSIONS.PORTAL_CAMPAIGNS_READ]} element={<PortalSettingsPage />} />}
         />
         <Route path="tracking-links" element={<Protected permissions={[PERMISSIONS.TRACKING_READ]} element={<TrackingLinksPage />} />} />
+        <Route path="reports/clients" element={<Protected permissions={[PERMISSIONS.PERFORMANCE_READ]} element={<ClientReportsPage />} />} />
+        <Route path="reports/campaigns" element={<Protected permissions={[PERMISSIONS.PERFORMANCE_READ]} element={<CampaignReportsPage />} />} />
+        <Route path="clicks" element={<Protected permissions={[PERMISSIONS.TRACKING_READ]} element={<ClicksPage />} />} />
+        <Route path="conversions" element={<Protected permissions={[PERMISSIONS.CONVERSIONS_READ]} element={<ConversionsPage />} />} />
         <Route path="ops/exceptions" element={<Protected permissions={[PERMISSIONS.EXCEPTIONS_READ]} element={<ExceptionQueuePage />} />} />
         <Route path="ops/mapping-review" element={<Protected permissions={[PERMISSIONS.EXCEPTIONS_READ]} element={<MappingReviewPage />} />} />
         <Route path="ops/sync-runs" element={<Protected permissions={[PERMISSIONS.OPS_READ]} element={<SyncRunHistoryPage />} />} />

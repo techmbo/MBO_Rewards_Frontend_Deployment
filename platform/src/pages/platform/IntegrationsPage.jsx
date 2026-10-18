@@ -378,7 +378,36 @@ function ConfirmModal({ title, body, busy, onCancel, onConfirm }) {
 }
 ConfirmModal.propTypes = { title: optionalString, body: optionalNode, busy: optionalBool, onCancel: optionalFunc, onConfirm: optionalFunc };
 
-function AccountRowActions({ row, canManage, canSync, syncing, anySyncRunning, onConnect, onReplace, onSync, onDisconnect }) {
+/**
+ * Per-account sync state from GET /sync/status, keyed "platform:accountLabel" ("platform:*" when a
+ * unit covers every account of a platform). Durable run units say which account is RUNNING or
+ * still PENDING; a manual single-account sync shows up only as the in-memory job
+ * `sync:<platform>:<accountLabel>[:<sourceObject>]`.
+ */
+function serverSyncStates(status) {
+  const states = {};
+  const mark = (platform, accountLabel, state) => {
+    if (!platform) return;
+    const key = `${platform}:${accountLabel || "*"}`;
+    if (states[key] !== "running") states[key] = state;
+  };
+  for (const unit of Array.isArray(status?.units) ? status.units : []) {
+    if (unit?.status === "RUNNING") mark(unit.platform, unit.accountLabel, "running");
+    else if (unit?.status === "PENDING" && unit.executable !== false) mark(unit.platform, unit.accountLabel, "queued");
+  }
+  const memory = status?.inMemory;
+  if (memory?.status === "running" && typeof memory.jobName === "string") {
+    const [prefix, platform, accountLabel] = memory.jobName.split(":");
+    if (prefix === "sync" && platform && platform !== "orchestration") mark(platform, accountLabel, "running");
+  }
+  return states;
+}
+
+function rowSyncState(states, platform, accountLabel) {
+  return states[`${platform}:${accountLabel}`] || states[`${platform}:*`] || null;
+}
+
+function AccountRowActions({ row, canManage, canSync, syncing, queued, anySyncRunning, onConnect, onReplace, onSync, onDisconnect }) {
   if (!row.account) {
     return canManage ? (
       <button type="button" className={PRIMARY_BUTTON} onClick={onConnect}>
@@ -390,9 +419,21 @@ function AccountRowActions({ row, canManage, canSync, syncing, anySyncRunning, o
   }
   return (
     <div className="flex items-center gap-1">
-      {canSync ? (
+      {syncing ? (
+        <span
+          className="inline-flex items-center gap-1.5 rounded-lg border border-[#b2ccff] bg-[#eef4ff] px-2.5 py-1.5 text-[11px] font-extrabold text-[#1d4ed8]"
+          role="status"
+        >
+          <span className="h-3 w-3 animate-spin rounded-full border-2 border-[#1d4ed8] border-t-transparent" aria-hidden="true" />
+          Syncing…
+        </span>
+      ) : queued ? (
+        <span className="inline-flex rounded-lg border border-[#fedf89] bg-[#fffaeb] px-2.5 py-1.5 text-[11px] font-extrabold text-[#9a6700]" role="status">
+          Queued
+        </span>
+      ) : canSync ? (
         <button type="button" className={ACTION_BUTTON} onClick={onSync} disabled={anySyncRunning}>
-          {syncing ? "Syncing…" : "Sync now"}
+          Sync now
         </button>
       ) : null}
       {canManage ? (
@@ -412,6 +453,7 @@ AccountRowActions.propTypes = {
   canManage: optionalBool,
   canSync: optionalBool,
   syncing: optionalBool,
+  queued: optionalBool,
   anySyncRunning: optionalBool,
   onConnect: optionalFunc,
   onReplace: optionalFunc,
@@ -446,6 +488,7 @@ export function IntegrationsPage() {
   const [confirm, setConfirm] = useState(null); // { platform, accountLabel }
   const [confirmBusy, setConfirmBusy] = useState(false);
   const [syncing, setSyncing] = useState(null); // "all" | "platform:label"
+  const [serverStates, setServerStates] = useState({}); // from GET /sync/status, see serverSyncStates
   const mounted = useRef(true);
 
   useEffect(() => {
@@ -471,6 +514,34 @@ export function IntegrationsPage() {
   useEffect(() => {
     loadConnections();
   }, [loadConnections]);
+
+  // A sync may have been started elsewhere (another tab, the scheduler, a full run), so the server
+  // decides which rows are syncing. Read it on load and keep polling while anything is active.
+  const refreshServerSync = useCallback(async () => {
+    try {
+      const status = await fetchApi("/sync/status", {}, { skipCache: true });
+      const next = serverSyncStates(status);
+      if (mounted.current) setServerStates(next);
+      return Object.keys(next).length > 0;
+    } catch {
+      // No system:read, or the status endpoint is down: fall back to this tab's own state.
+      return false;
+    }
+  }, []);
+
+  const serverActive = Object.keys(serverStates).length > 0;
+  useEffect(() => {
+    refreshServerSync();
+  }, [refreshServerSync]);
+  useEffect(() => {
+    if (!serverActive && !syncing) return undefined;
+    const timer = setInterval(async () => {
+      const stillActive = await refreshServerSync();
+      // A sync started elsewhere just finished: pick up its new last-sync times.
+      if (!stillActive && !syncing) loadConnections();
+    }, 5000);
+    return () => clearInterval(timer);
+  }, [serverActive, syncing, refreshServerSync, loadConnections]);
 
   const rows = useMemo(
     () =>
@@ -565,6 +636,8 @@ export function IntegrationsPage() {
       await loadConnections();
     } catch (error) {
       setNotice({ tone: "danger", text: safeError(error, "Sync failed.") });
+      // "A sync is already in progress": show which account it is in the Action column.
+      refreshServerSync();
     } finally {
       if (mounted.current) setSyncing(null);
     }
@@ -585,8 +658,8 @@ export function IntegrationsPage() {
           </p>
         </div>
         {canSync ? (
-          <button type="button" className={PRIMARY_BUTTON} onClick={() => runSync(null, null)} disabled={Boolean(syncing)}>
-            {syncing === "all" ? "Syncing…" : "Run full sync"}
+          <button type="button" className={PRIMARY_BUTTON} onClick={() => runSync(null, null)} disabled={Boolean(syncing) || serverActive}>
+            {syncing === "all" || serverActive ? "Syncing…" : "Run full sync"}
           </button>
         ) : null}
       </div>
@@ -674,8 +747,9 @@ export function IntegrationsPage() {
                           row={{ account }}
                           canManage={canManage}
                           canSync={canSync}
-                          syncing={syncing === syncKey}
-                          anySyncRunning={Boolean(syncing)}
+                          syncing={syncing === syncKey || rowSyncState(serverStates, spec.platform, account?.accountLabel) === "running"}
+                          queued={rowSyncState(serverStates, spec.platform, account?.accountLabel) === "queued"}
+                          anySyncRunning={Boolean(syncing) || serverActive}
                           onConnect={() => setModal({ platform: spec.platform, accountLabel: "" })}
                           onReplace={() => setModal({ platform: spec.platform, accountLabel: account?.accountLabel || "" })}
                           onSync={() => runSync(spec.platform, account.accountLabel)}
